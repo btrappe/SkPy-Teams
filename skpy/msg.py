@@ -219,12 +219,12 @@ class SkypeMsg(SkypeObj):
         return """<URIObject type="{1}" uri="{2}"{3}>{4}{5}{6}{0}</URIObject>""" \
                .format(content, type, url, thumbAttr, titleTag, descTag, valTags)
 
-    attrs = ("id", "type", "time", "clientId", "userId", "chatId", "content")
+    attrs = ("id", "type", "time", "clientId", "userId", "chatId", "content", "imdisplayname")
 
     @classmethod
     def rawToFields(cls, raw={}):
         try:
-            msgTime = datetime.strptime(raw.get("originalarrivaltime", ""), "%Y-%m-%dT%H:%M:%S.%fZ")
+            msgTime = datetime.strptime(raw.get("originalarrivaltime", ""), "%Y-%m-%dT%H:%M:%S.%f0Z")
         except ValueError:
             msgTime = datetime.now()
         fields = {"id": raw.get("id"),
@@ -233,7 +233,8 @@ class SkypeMsg(SkypeObj):
                   "clientId": raw.get("clientmessageid", raw.get("skypeeditedid")),
                   "userId": SkypeUtils.userToId(raw.get("from", "")),
                   "chatId": SkypeUtils.chatToId(raw.get("conversationLink", "")),
-                  "content": raw.get("content")}
+                  "content": raw.get("content"),
+                  "imdisplayname": raw.get("imdisplayname")}
         if fields["content"]:
             fields.update(cls.contentToFields(BeautifulSoup(fields["content"], "html.parser")))
         return fields

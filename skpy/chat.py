@@ -1,8 +1,9 @@
 from datetime import datetime
 import re
 import time
+from time import sleep
 
-from .core import SkypeObj, SkypeObjs, SkypeApiException
+from .core import SkypeObj, SkypeObjs, SkypeApiException, SkypeAuthException
 from .util import SkypeUtils
 from .conn import SkypeConnection
 from .msg import SkypeMsg
@@ -34,18 +35,27 @@ class SkypeChat(SkypeObj):
         id = raw.get("id")
         if "threadProperties" in raw:
             active = True
-            try:
-                info = skype.conn("GET", "{0}/threads/{1}".format(skype.conn.msgsHost, raw.get("id")),
-                                  auth=SkypeConnection.Auth.RegToken,
-                                  params={"view": "msnp24Equivalent"}).json()
-            except SkypeApiException as e:
-                if e.args[1].status_code in (403, 404):
-                    active = False
+            retry = True
+            while retry:
+                retry = False
+                try:
+                    info = skype.conn("GET", "{0}/threads/{1}".format(skype.conn.msgsHost, raw.get("id")),
+                                    auth=SkypeConnection.Auth.RegToken,
+                                    params={"view": "msnp24Equivalent"}).json()
+                except SkypeApiException as e:
+                    if e.args[1].status_code in (403, 404):
+                        active = False
+                    else:
+                        raise
+                except SkypeAuthException as e:
+                    if e.args[1].status_code == 429:
+                        retry = True
+                        sleep(10)
+                    else:
+                        raise
                 else:
-                    raise
-            else:
-                raw.update(info)
-            return SkypeGroupChat(skype, raw, **SkypeGroupChat.rawToFields(raw, active=active))
+                    raw.update(info)
+                return SkypeGroupChat(skype, raw, **SkypeGroupChat.rawToFields(raw, active=active))
         else:
             return SkypeSingleChat(skype, raw, **SkypeSingleChat.rawToFields(raw))
 

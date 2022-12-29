@@ -221,6 +221,7 @@ class SkypeConnection(SkypeObj):
             headers["Authorization"] = "skype_token {0}".format(self.tokens["skype"])
         elif auth == self.Auth.RegToken:
             headers["RegistrationToken"] = self.tokens["reg"]
+            headers["authentication"] = "skypetoken={0}".format(self.tokens["skype"])
         if os.getenv("SKPY_DEBUG_HTTP"):
             print("<= [{0}] {1} {2}".format(datetime.now().strftime("%d/%m %H:%M:%S"), method, url))
             print(pformat(kwargs))
@@ -909,7 +910,7 @@ class SkypeRegistrationTokenProvider(SkypeAuthProvider):
             .SkypeApiException: if the login form can't be processed
         """
         token = expiry = endpoint = None
-        msgsHost = SkypeConnection.API_MSGSHOST
+        msgsHost = self.conn.msgsHost
         while not token:
             secs = int(time.time())
             hash = self.getMac256Hash(str(secs))
